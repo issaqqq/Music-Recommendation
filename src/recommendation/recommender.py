@@ -53,6 +53,23 @@ class MusicRecommender:
 
         # Drop missing rows for features
         df = df.dropna(subset=required)
+
+        # ---------------------------------------------------------
+        # ML DATA CLEANING: Filter strictly for English songs
+        # ---------------------------------------------------------
+        print("Filtering out non-English tracks...")
+        def is_english(text):
+            try:
+                # If the string can be encoded in standard ASCII, it's English/Western
+                str(text).encode('ascii')
+                return True
+            except UnicodeEncodeError:
+                # Drops Russian (Cyrillic), Japanese, Korean, Arabic, etc.
+                return False
+                
+        # Apply the filter to both track names and artist names
+        df = df[df['track_name'].apply(is_english) & df['artist_name'].apply(is_english)]
+        # ---------------------------------------------------------
         
         # Save processed dataset
         os.makedirs(os.path.dirname(PROCESSED_MUSIC_PATH), exist_ok=True)

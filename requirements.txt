@@ -6,3 +6,8 @@ numpy>=1.24.0
 matplotlib>=3.7.0
 seaborn>=0.12.0
 streamlit>=1.25.0
+
+
+
+
+do python src/recommendation/recommender.py
