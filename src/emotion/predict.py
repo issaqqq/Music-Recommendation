@@ -30,16 +30,20 @@ class EmotionPredictor:
             self.face_cascade = None
 
     def preprocess_face(self, face_crop):
-        """Resizes and normalizes the cropped face for the model."""
+        """Resizes, converts to 1-channel grayscale, and normalizes."""
+        # Resize to the expected dimension (48x48) using config base dimensions
         face_resized = cv2.resize(face_crop, (IMG_SHAPE[0], IMG_SHAPE[1]))
         
-        if len(face_resized.shape) == 2:
-            face_rgb = cv2.cvtColor(face_resized, cv2.COLOR_GRAY2RGB)
-        else:
-            face_rgb = face_resized
+        # If image is 3 channels (colored), convert it to single channel (grayscale)
+        if len(face_resized.shape) == 3:
+            face_resized = cv2.cvtColor(face_resized, cv2.COLOR_BGR2GRAY)
 
-        face_normalized = face_rgb.astype('float32') / 255.0
-        face_expanded = np.expand_dims(face_normalized, axis=0)
+        # Normalize pixels to values between 0 and 1
+        face_normalized = face_resized.astype('float32') / 255.0
+        
+        # Expand dimensions to match model input shape: (1, 48, 48, 1)
+        face_expanded = np.expand_dims(face_normalized, axis=(0, -1))
+        
         return face_expanded
 
     def detect_and_predict(self, frame):
@@ -84,7 +88,7 @@ class EmotionPredictor:
 def test_webcam():
     predictor = EmotionPredictor()
     
-    # Auto-detect camera index (useful for Camo / Virtual webcams)
+    # Auto-detect camera index 
     cap = None
     for idx in range(3):
         print(f"Trying camera index {idx}...")
@@ -98,11 +102,10 @@ def test_webcam():
             temp_cap.release()
 
     if cap is None:
-        print("Error: Could not open any webcam or Camo stream index (0, 1, 2).")
-        print("Please verify Camo app is running and active on your PC.")
+        print("Error: Could not open any webcam or stream index (0, 1, 2).")
         return
 
-    print("Camo webcam stream active. Press 'q' to quit.")
+    print("Webcam stream active. Press 'q' to quit.")
 
     while True:
         ret, frame = cap.read()
@@ -112,20 +115,11 @@ def test_webcam():
 
         frame = cv2.flip(frame, 1)
         
-        # Simple center fallback bounding box if Haar cascade isn't available
-        h_f, w_f, _ = frame.shape
-        results = [{
-            'box': (w_f // 4, h_f // 4, w_f // 2, h_f // 2),
-            'emotion': 'happy',
-            'confidence': 0.85,
-            'probabilities': {'happy': 0.85, 'neutral': 0.15}
-        }] # Fallback simulation frame check if model predict is verified
-
         # Try model prediction
         try:
             results = predictor.detect_and_predict(frame)
         except Exception:
-            pass
+            results = []
 
         for result in results:
             x, y, w, h = result['box']
@@ -136,7 +130,7 @@ def test_webcam():
             text = f"{emotion.capitalize()} ({conf:.1f}%)"
             cv2.putText(frame, text, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
-        cv2.imshow('Emotion Detection Test (Camo)', frame)
+        cv2.imshow('Emotion Detection Test', frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break

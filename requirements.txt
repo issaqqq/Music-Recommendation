@@ -9,5 +9,3 @@ streamlit>=1.25.0
 
 
 
-
-do python src/recommendation/recommender.py
